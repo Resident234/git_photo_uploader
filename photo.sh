@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# пример вызова скрипта:  
+#bash photo.sh "/d/PHOTO"
+
 # Указываем путь к папке (первый аргумент)
 TARGET_DIR="$1"
 
-# todo репу оформить
+# todo сохранять текущий прогресс
 
 # Проверяем, передан ли аргумент
 if [ -z "$TARGET_DIR" ]; then
@@ -33,8 +36,84 @@ if [ ! -d .git ]; then
   exit 1
 fi
 
-# Рекурсивный поиск файлов, размер которых меньше 50MB
-find . -type f -size -50M | while read -r file; do
+# Получаем список файлов, которые уже в индексе Git (в массив)
+mapfile -t indexed_files < <(git ls-files)
+
+# Проверим, что в массиве
+#for file in "${indexed_files[@]}"; do
+#    echo "files in index: $file"
+#done
+
+sleep 30
+
+: <<'COMMENT'
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+BLG/DSC04482.JPG
+COMMENT
+
+
+# Declare an array to hold file paths
+declare -a files
+
+# Use find to locate files smaller than 50MB and iterate over them
+while IFS= read -r file; do
+    files+=("$file")
+done < <(find . -type f -size -50M)
+
+
+: <<'COMMENT'
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+./BLG/DSC04482.JPG
+COMMENT
+
+# Iterate over the array and remove the "./" prefix
+for i in "${!files[@]}"; do
+    files[$i]="${files[$i]#./}"
+done
+
+#for file in "${files[@]}"; do
+#    echo "files all: $file"
+#done
+
+# Array to hold the difference
+diff_files=()
+
+# Find elements in 'files' that are not in 'indexed_files'
+for file in "${files[@]}"; do
+    if [[ ! " ${indexed_files[@]} " =~ " ${file} " ]]; then
+        diff_files+=("$file")
+    fi
+done
+
+# Print the difference
+#echo "Files not indexed:"
+#for diff in "${diff_files[@]}"; do
+#    echo "diff $diff"
+#done
+
+# Add "./" prefix to each element in diff_files
+for i in "${!diff_files[@]}"; do
+    diff_files[$i]="./${diff_files[$i]}"
+done
+
+# Overwrite files with diff_files
+files=("${diff_files[@]}")
+
+#todo обработка ошибки, если git lock существует, то удалять его
+
+# Проходимся по массиву
+for file in "${files[@]}"; do
+
   # Добавляем файл в Git
   git add "$file" # todo проверять что файл уже не добавлен
 
@@ -46,6 +125,7 @@ find . -type f -size -50M | while read -r file; do
 
   # Отправляем изменения в удалённый репозиторий (в основную ветку)
   git push origin master  # todo ветку в параметр
+
 done
 
 sleep 30
