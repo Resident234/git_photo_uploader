@@ -38,6 +38,7 @@ fi
 
 # Получаем список файлов, которые уже в индексе Git (в массив)
 mapfile -t indexed_files < <(git ls-files)
+echo "Файлов в индексе git: ${#indexed_files[@]}"
 
 # Проверим, что в массиве
 #for file in "${indexed_files[@]}"; do
@@ -62,8 +63,9 @@ declare -a files
 
 # Use find to locate files smaller than 50MB and iterate over them
 while IFS= read -r file; do
+    echo "Найден файл $file"
     files+=("$file")
-done < <(find . -type f -size -50M)
+done < <(find . -type f -size -50M -not -path "./.git/*")
 
 
 : <<'COMMENT'
@@ -78,6 +80,7 @@ COMMENT
 
 # Iterate over the array and remove the "./" prefix
 for i in "${!files[@]}"; do
+    echo "Удаление ./ из $i"
     files[$i]="${files[$i]#./}"
 done
 
@@ -90,6 +93,7 @@ diff_files=()
 
 # Find elements in 'files' that are not in 'indexed_files'
 for file in "${files[@]}"; do
+    echo "Поиск файла $file в индексе"
     if [[ ! " ${indexed_files[@]} " =~ " ${file} " ]]; then
         diff_files+=("$file")
     fi
@@ -103,19 +107,26 @@ done
 
 # Add "./" prefix to each element in diff_files
 for i in "${!diff_files[@]}"; do
+    echo "Добавление ./ к $i"
     diff_files[$i]="./${diff_files[$i]}"
 done
 
 # Overwrite files with diff_files
 files=("${diff_files[@]}")
 
-#todo обработка ошибки, если git lock существует, то удалять его
+# Check if .git/index.lock exists and remove it
+if [ -f ".git/index.lock" ]; then
+    rm ".git/index.lock"
+    echo "Removed existing .git/index.lock file"
+fi
+
+
 
 # Проходимся по массиву
 for file in "${files[@]}"; do
 
   # Добавляем файл в Git
-  git add "$file" # todo проверять что файл уже не добавлен
+  git add "$file"
 
   # Получаем имя папки, в которой находится файл
   folder_name=$(basename "$(dirname "$file")")
