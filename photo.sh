@@ -1,15 +1,40 @@
 #!/bin/bash
 
 # пример вызова скрипта:  
-#bash photo.sh "/d/PHOTO"
+#bash photo.sh --folder="/d/PHOTO" --max-size=50M --branch=master
 
 # В начале скрипта
 export LANG=en_US.UTF-8
 
-# Указываем путь к папке (первый аргумент)
-TARGET_DIR="$1"
+# Инициализируем переменные
+TARGET_DIR=""
+MAX_SIZE="50M"
+BRANCH="master"
 
-# todo сохранять текущий прогресс
+# Парсим аргументы командной строки
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --folder=*)
+            TARGET_DIR="${1#*=}"
+            ;;
+        --max-size=*)
+            MAX_SIZE="${1#*=}"
+            ;;
+        --branch=*)
+            BRANCH="${1#*=}"
+            ;;
+        --help)
+            echo "Использование: bash photo.sh --folder=\"/путь/к/папке\" [--max-size=50M] [--branch=master]"
+            exit 0
+            ;;
+        *)
+            echo "Неизвестный параметр: $1"
+            echo "Используйте --help для справки"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # Проверяем, передан ли аргумент
 if [ -z "$TARGET_DIR" ]; then
@@ -62,14 +87,14 @@ while IFS= read -r file; do
     # Создаем коммит с именем папки
     git commit -m "$folder_name"
 
-    # Отправляем изменения в удалённый репозиторий (в основную ветку)
-    git push origin master  # todo ветку в параметр
+    # Отправляем изменения в удалённый репозиторий
+    git push origin $BRANCH
 
-done < <(find . -type f -size -50M -not -path "./.git/*" -not -path "./.idea/*" | shuf)
+done < <(find . -type f -size -$MAX_SIZE -not -path "./.git/*" -not -path "./.idea/*" | shuf)
 
 
 sleep 30
-echo "✅ Все файлы (меньше 50МБ) добавлены, закоммичены и отправлены в репозиторий!"
+echo "✅ Все файлы (меньше $MAX_SIZE) добавлены, закоммичены и отправлены в репозиторий!"
 # todo прогресс бар добавить
 # todo ошибку пуша обрабатывать
 # todo таймаут соединения с гитом увеличить
