@@ -2,6 +2,7 @@
 
 # пример вызова скрипта:  
 #bash photo.sh --folder="/d/PHOTO" --max-size=50M --branch=master
+#bash photo.sh --folder="/d/PHOTO" --search-folder="Домашние" --max-size=50M --branch=master
 
 # В начале скрипта
 export LANG=en_US.UTF-8
@@ -10,6 +11,7 @@ export LANG=en_US.UTF-8
 TARGET_DIR=""
 MAX_SIZE="50M"
 BRANCH="master"
+SEARCH_FOLDER=""
 
 # Парсим аргументы командной строки
 while [ $# -gt 0 ]; do
@@ -22,6 +24,9 @@ while [ $# -gt 0 ]; do
             ;;
         --branch=*)
             BRANCH="${1#*=}"
+            ;;
+        --search-folder=*)
+            SEARCH_FOLDER="${1#*=}"
             ;;
         --help)
             echo "Использование: bash photo.sh --folder=\"/путь/к/папке\" [--max-size=50M] [--branch=master]"
@@ -70,6 +75,16 @@ if [ -f ".git/index.lock" ]; then
     echo "Removed existing .git/index.lock file"
 fi
 
+# Формируем путь для поиска
+SEARCH_PATH="."
+if [ -n "$SEARCH_FOLDER" ]; then
+    SEARCH_PATH="./$SEARCH_FOLDER"
+    # Проверяем существование папки для поиска
+    if [ ! -d "$SEARCH_PATH" ]; then
+        echo "Ошибка: Папка для поиска $SEARCH_FOLDER не существует!"
+        exit 1
+    fi
+fi
 
 # Перебор всех элементов массива untracked_files
 while IFS= read -r file; do
@@ -90,7 +105,7 @@ while IFS= read -r file; do
     # Отправляем изменения в удалённый репозиторий
     git push origin $BRANCH
 
-done < <(find . -type f -size -$MAX_SIZE -not -path "./.git/*" -not -path "./.idea/*" | shuf)
+done < <(find "$SEARCH_PATH" -type f -size -$MAX_SIZE -not -path "./.git/*" -not -path "./.idea/*" | shuf)
 
 
 sleep 30
