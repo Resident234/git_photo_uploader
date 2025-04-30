@@ -7,6 +7,22 @@
 # В начале скрипта
 export LANG=en_US.UTF-8
 
+
+# Функция для отображения прогресс-бара
+show_progress() {
+    local current=$1
+    local total=$2
+    local width=50  # ширина прогресс-бара
+    local percentage=$((current * 100 / total))
+    local completed=$((width * current / total))
+    
+    # Создаем строку прогресса
+    printf "\rПрогресс: ["
+    printf "%${completed}s" | tr ' ' '#'
+    printf "%$((width - completed))s" | tr ' ' '-'
+    printf "] %d%% (%d/%d)" "$percentage" "$current" "$total"
+}
+
 # Инициализируем переменные
 TARGET_DIR=""
 MAX_SIZE="50M"
@@ -86,9 +102,32 @@ if [ -n "$SEARCH_FOLDER" ]; then
     fi
 fi
 
-# Перебор всех элементов массива untracked_files
+untracked_files=()
+
+
+
+# Получаем общее количество файлов для обработки
+
+
 while IFS= read -r file; do
 
+    untracked_files+=("$file")
+
+done < <(find "$SEARCH_PATH" -type f -size -$MAX_SIZE -not -path "./.git/*" -not -path "./.idea/*" | shuf)
+
+total_files=${#untracked_files[@]}
+current_file=0
+
+echo "Найдено файлов для обработки: $total_files"
+
+
+# 2. Перебор всех найденных неиндексированных файлов из массива
+for file in "${untracked_files[@]}"; do
+    ((current_file_num++))
+
+    # Показываем прогресс
+    show_progress "$current_file_num" "$total_files" "$file"
+    
     echo "Обработка файла: $file"
     # Здесь можно выполнять какие-то действия с каждым файлом
     # Например, проверка размера, копирование, удаление и т.д.
@@ -105,11 +144,9 @@ while IFS= read -r file; do
     # Отправляем изменения в удалённый репозиторий
     git push origin $BRANCH
 
-done < <(find "$SEARCH_PATH" -type f -size -$MAX_SIZE -not -path "./.git/*" -not -path "./.idea/*" | shuf)
-
+done
 
 sleep 30
 echo "✅ Все файлы (меньше $MAX_SIZE) добавлены, закоммичены и отправлены в репозиторий!"
-# todo прогресс бар добавить
 # todo ошибку пуша обрабатывать
 # todo таймаут соединения с гитом увеличить
