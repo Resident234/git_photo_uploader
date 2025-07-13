@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # пример вызова скрипта:  
-#bash photo.sh --folder="/d/PHOTO" --max-size=50M --branch=master
+#bash photo.sh --folder="/h/PHOTO" --max-size=50M --branch=master
 #bash photo.sh --folder="/d/PHOTO" --search-folder="Домашние" --max-size=50M --branch=master
 
 # В начале скрипта
@@ -123,6 +123,22 @@ echo "Найдено файлов для обработки: $total_files"
 
 # 2. Перебор всех найденных неиндексированных файлов из массива
 for file in "${untracked_files[@]}"; do
+
+    # while это бесконечный цикл
+    # в этом цикле проверять последнюю активность пользователя в системе. Если пользователь был активен менее 5 минут назад, то делать паузу на 5 минут, если был активен более 5 минут назад, то выхоить из цикла
+    while true; do
+        # Получаем HTML страницы
+        html=$(curl -s "https://github.com/Resident234Photo")
+
+        # Если найдено слово "stop", делаем паузу 5 минут
+        if echo "$html" | grep -qi "stop"; then
+            echo "Обнаружено слово 'stop' в HTML. Пауза 5 минут."
+            sleep 300
+        else
+            break
+        fi
+    done
+
     ((current_file_num++))
 
     # Показываем прогресс
