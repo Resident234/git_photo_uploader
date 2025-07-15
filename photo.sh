@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # пример вызова скрипта:  
-#bash photo.sh --folder="/h/PHOTO" --max-size=50M --branch=master
+#bash photo.sh --folder="/h/PHOTO" --max-size=10M --branch=master
 #bash photo.sh --folder="/d/PHOTO" --search-folder="Домашние" --max-size=50M --branch=master
 
 # В начале скрипта
@@ -127,6 +127,14 @@ for file in "${untracked_files[@]}"; do
     # while это бесконечный цикл
     # в этом цикле проверять последнюю активность пользователя в системе. Если пользователь был активен менее 5 минут назад, то делать паузу на 5 минут, если был активен более 5 минут назад, то выхоить из цикла
     while true; do
+        # Проверяем соединение с github.com/Resident234Photo
+        curl --connect-timeout 10 -s "https://github.com/Resident234Photo" -o /dev/null
+        if [ $? -ne 0 ]; then
+            echo "Нет соединения с https://github.com/Resident234Photo. Пауза 5 минут."
+            sleep 300
+            continue
+        fi
+
         # Получаем HTML страницы
         html=$(curl -s "https://github.com/Resident234Photo")
 
